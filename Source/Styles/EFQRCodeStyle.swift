@@ -115,6 +115,8 @@ public enum EFStyleParamsPositionStyle: CaseIterable {
     case planets
     /// DSJ (Dancing Square J) position patterns with unique styling.
     case dsj
+    /// Rounded rectangle for both inner and outer patterns.
+    case roundedRectangleBoth
 }
 
 /**
@@ -146,6 +148,8 @@ public class EFStyleParamIcon {
     let borderColor: CGColor
     /// The size of the icon as a percentage of the QR code size.
     let percentage: CGFloat
+    /// The corner radius percentage of the icon (0.0 = rectangle, 0.32 = default rounded).
+    let cornerRadiusPercentage: CGFloat
     /**
      * Creates an icon configuration for QR code customization.
      *
@@ -155,19 +159,22 @@ public class EFStyleParamIcon {
      *   - alpha: The transparency level of the icon (0.0 to 1.0). Defaults to 1.0.
      *   - borderColor: The border color of the icon.
      *   - percentage: The size of the icon as a percentage of the QR code size. Defaults to 0.2.
+     *   - cornerRadiusPercentage: The corner radius as percentage (0.0 = rectangle, 0.32 = rounded). Defaults to 0.32.
      */
     public init(
         image: EFStyleParamImage,
         mode: EFImageMode = .scaleAspectFill,
         alpha: CGFloat = 1,
         borderColor: CGColor,
-        percentage: CGFloat = 0.2
+        percentage: CGFloat = 0.2,
+        cornerRadiusPercentage: CGFloat = 0.32
     ) {
         self.image = image
         self.mode = mode
         self.alpha = alpha
         self.borderColor = borderColor
         self.percentage = percentage
+        self.cornerRadiusPercentage = cornerRadiusPercentage
     }
     /**
      * Creates a copy of the icon configuration with optional modifications.
@@ -178,6 +185,7 @@ public class EFStyleParamIcon {
      *   - alpha: The new transparency level. If nil, keeps the current alpha.
      *   - borderColor: The new border color. If nil, keeps the current border color.
      *   - percentage: The new size percentage. If nil, keeps the current percentage.
+     *   - cornerRadiusPercentage: The new corner radius percentage. If nil, keeps the current value.
      * - Returns: A new EFStyleParamIcon with the specified modifications.
      */
     func copyWith(
@@ -185,14 +193,16 @@ public class EFStyleParamIcon {
         mode: EFImageMode? = nil,
         alpha: CGFloat? = nil,
         borderColor: CGColor? = nil,
-        percentage: CGFloat? = nil
+        percentage: CGFloat? = nil,
+        cornerRadiusPercentage: CGFloat? = nil
     ) -> EFStyleParamIcon {
         return EFStyleParamIcon(
             image: image ?? self.image,
             mode: mode ?? self.mode,
             alpha: alpha ?? self.alpha,
             borderColor: borderColor ?? self.borderColor,
-            percentage: percentage ?? self.percentage
+            percentage: percentage ?? self.percentage,
+            cornerRadiusPercentage: cornerRadiusPercentage ?? self.cornerRadiusPercentage
         )
     }
     
@@ -229,25 +239,45 @@ public class EFStyleParamIcon {
         let randomIdClips: String = "icon\(Anchor.uniqueMark)"
         Anchor.uniqueMark += 1
         
-        pointList.append("<path opacity=\"\(bdAlpha)\" d=\"\(EFQRCodeStyleBasic.sq25)\" stroke=\"\(bdColor)\" stroke-width=\"\(100.0 / iconSize)\" fill=\"\(bdColor)\" transform=\"translate(\(iconXY),\(iconXY)) scale(\(iconSize / 100.0),\(iconSize / 100.0))\"/>")
-        pointList.append("<g key=\"g\(id)\">")
-        id += 1
-        
         let iconOffset: CGFloat = iconXY * 0.024
         let rectXY: CGFloat = iconXY - iconOffset
         let length: CGFloat = iconSize + 2.0 * iconOffset
         let iconRect: CGRect = CGRect(x: rectXY, y: rectXY, width: length, height: length)
-        pointList.append(
-            "<defs><path id=\"\(randomIdDefs)\" d=\"\(EFQRCodeStyleBasic.sq25)\"/>"
-            + "<mask id=\"\(randomIdClips)\">"
-            + "<use xlink:href=\"#\(randomIdDefs)\" overflow=\"visible\" fill=\"#ffffff\" transform=\"translate(\(iconXY),\(iconXY)) scale(\(iconSize / 100.0),\(iconSize / 100.0))\"/>"
-            + "</mask>"
-            + "</defs>"
-            + "<g mask=\"url(#\(randomIdClips))\">"
-            + (try image.write(id: id, rect: iconRect, opacity: imageAlpha, mode: mode))
-            + "</g>"
-            + "</g>"
-        )
+        
+        // 根据 cornerRadiusPercentage 决定使用矩形还是圆角
+        if cornerRadiusPercentage <= 0 {
+            // 矩形 Logo
+            pointList.append("<rect opacity=\"\(bdAlpha)\" fill=\"\(bdColor)\" x=\"\(iconXY)\" y=\"\(iconXY)\" width=\"\(iconSize)\" height=\"\(iconSize)\"/>")
+            pointList.append("<g key=\"g\(id)\">")
+            id += 1
+            pointList.append(
+                "<defs><rect id=\"\(randomIdDefs)\" x=\"\(iconXY)\" y=\"\(iconXY)\" width=\"\(iconSize)\" height=\"\(iconSize)\"/>"
+                + "<mask id=\"\(randomIdClips)\">"
+                + "<use xlink:href=\"#\(randomIdDefs)\" overflow=\"visible\" fill=\"#ffffff\"/>"
+                + "</mask>"
+                + "</defs>"
+                + "<g mask=\"url(#\(randomIdClips))\">"
+                + (try image.write(id: id, rect: iconRect, opacity: imageAlpha, mode: mode))
+                + "</g>"
+                + "</g>"
+            )
+        } else {
+            // 圆角 Logo（原始实现）
+            pointList.append("<path opacity=\"\(bdAlpha)\" d=\"\(EFQRCodeStyleBasic.sq25)\" stroke=\"\(bdColor)\" stroke-width=\"\(100.0 / iconSize)\" fill=\"\(bdColor)\" transform=\"translate(\(iconXY),\(iconXY)) scale(\(iconSize / 100.0),\(iconSize / 100.0))\"/>")
+            pointList.append("<g key=\"g\(id)\">")
+            id += 1
+            pointList.append(
+                "<defs><path id=\"\(randomIdDefs)\" d=\"\(EFQRCodeStyleBasic.sq25)\"/>"
+                + "<mask id=\"\(randomIdClips)\">"
+                + "<use xlink:href=\"#\(randomIdDefs)\" overflow=\"visible\" fill=\"#ffffff\" transform=\"translate(\(iconXY),\(iconXY)) scale(\(iconSize / 100.0),\(iconSize / 100.0))\"/>"
+                + "</mask>"
+                + "</defs>"
+                + "<g mask=\"url(#\(randomIdClips))\">"
+                + (try image.write(id: id, rect: iconRect, opacity: imageAlpha, mode: mode))
+                + "</g>"
+                + "</g>"
+            )
+        }
         id += 1
         return pointList
     }

@@ -343,6 +343,19 @@ public class EFQRCodeStyleBasic: EFQRCodeStyleBase {
         let timingAlpha: CGFloat = try params.timing.color.alpha()
         let timingSize: CGFloat = params.timing.size
         
+        // 计算中心区域（如果有 icon，则中心区域留白）
+        let centerExclusionSize: Int
+        if let icon = params.icon {
+            let scale: CGFloat = min(icon.percentage, 0.33)
+            let iconSizeInModules = Int(CGFloat(nCount) * scale)
+            // 向上取整到奇数，确保中心对称
+            centerExclusionSize = (iconSizeInModules % 2 == 0) ? (iconSizeInModules + 1) : iconSizeInModules
+        } else {
+            centerExclusionSize = 0
+        }
+        let centerStart = (nCount - centerExclusionSize) / 2
+        let centerEnd = centerStart + centerExclusionSize
+        
         var id: Int = 0
         
         for x in 0..<nCount {
@@ -351,6 +364,13 @@ public class EFQRCodeStyleBasic: EFQRCodeStyleBase {
                 if !isDark {
                     continue
                 } else if typeTable[x][y] == QRPointType.alignCenter || typeTable[x][y] == QRPointType.alignOther {
+                    // 检查对齐点是否在中心留白区域内
+                    if centerExclusionSize > 0 && 
+                       x >= centerStart && x < centerEnd && 
+                       y >= centerStart && y < centerEnd {
+                        continue
+                    }
+                    
                     switch alignType {
                     case .rectangle:
                         pointList.append("<rect key=\"\(id)\" opacity=\"\(alignAlpha)\" width=\"\(alignSize)\" height=\"\(alignSize)\" fill=\"\(alignColor)\" x=\"\(x.cgFloat + (1.0 - alignSize) / 2.0)\" y=\"\(y.cgFloat + (1.0 - alignSize) / 2.0)\"/>")
@@ -367,6 +387,13 @@ public class EFQRCodeStyleBasic: EFQRCodeStyleBase {
                         break
                     }
                 } else if typeTable[x][y] == QRPointType.timing {
+                    // 检查定时点是否在中心留白区域内
+                    if centerExclusionSize > 0 && 
+                       x >= centerStart && x < centerEnd && 
+                       y >= centerStart && y < centerEnd {
+                        continue
+                    }
+                    
                     switch timingType {
                     case .rectangle:
                         pointList.append("<rect key=\"\(id)\" opacity=\"\(timingAlpha)\" width=\"\(timingSize)\" height=\"\(timingSize)\" fill=\"\(timingColor)\" x=\"\(x.cgFloat + (1.0 - timingSize) / 2.0)\" y=\"\(y.cgFloat + (1.0 - timingSize) / 2.0)\"/>")
@@ -431,10 +458,28 @@ public class EFQRCodeStyleBasic: EFQRCodeStyleBase {
                         pointList.append("<rect key=\"\(id)\" opacity=\"\(positionAlpha)\" width=\"\(widthValue)\" height=\"\(posSize)\" fill=\"\(positionColor)\" x=\"\(xTempValue - 1)\" y=\"\(yTempValue + 3)\"/>")
                         id += 1
                         break
+                    case .roundedRectangleBoth:
+                        // 内圈：小圆角方形（填充）
+                        let innerSize: CGFloat = 3.0
+                        let innerCornerRadius: CGFloat = innerSize / 4.0
+                        pointList.append("<rect key=\"\(id)\" opacity=\"\(positionAlpha)\" fill=\"\(positionColor)\" x=\"\(x.cgFloat - 1)\" y=\"\(y.cgFloat - 1)\" width=\"\(innerSize)\" height=\"\(innerSize)\" rx=\"\(innerCornerRadius)\" ry=\"\(innerCornerRadius)\"/>")
+                        id += 1
+                        // 外圈：大圆角方形（使用 sq25 路径，描边）
+                        pointList.append("<path key=\"\(id)\" opacity=\"\(positionAlpha)\" d=\"\(EFQRCodeStyleBasic.sq25)\" stroke=\"\(positionColor)\" stroke-width=\"\(100.cgFloat / 6 * posSize)\" fill=\"none\" transform=\"translate(\(x.cgFloat - 2.5),\(y.cgFloat - 2.5)) scale(\(6.cgFloat / 100),\(6.cgFloat / 100))\"/>")
+                        id += 1
+                        break
                     }
                 } else if typeTable[x][y] == QRPointType.posOther {
                     continue
                 } else {
+                    // 检查是否在中心留白区域内（用于放置 logo）
+                    if centerExclusionSize > 0 && 
+                       x >= centerStart && x < centerEnd && 
+                       y >= centerStart && y < centerEnd {
+                        // 跳过中心区域的数据点，为 logo 留白
+                        continue
+                    }
+                    
                     switch type {
                     case .rectangle:
                         pointList.append("<rect opacity=\"\(opacity)\" width=\"\(size)\" height=\"\(size)\" key=\"\(id)\" fill=\"\(otherColor)\" x=\"\(x.cgFloat + (1.0 - size) / 2.0)\" y=\"\(y.cgFloat + (1.0 - size) / 2.0)\"/>")
