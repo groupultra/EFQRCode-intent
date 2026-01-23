@@ -454,6 +454,16 @@ public class EFQRCodeStyleResampleImage: EFQRCodeStyleBase {
                         pointList.append("<rect key=\"\(id)\" opacity=\"\(positionAlpha)\" width=\"\(widthValue)\" height=\"\(3 * positionSize)\" fill=\"\(positionColor)\" x=\"\(xTempValue - 3)\" y=\"\(yTempValue + 9)\"/>")
                         id += 1
                         break
+                    case .roundedRectangleBoth:
+                        // 内圈：小圆角方形（填充）- 3倍大小
+                        let innerSize: CGFloat = 9.0
+                        let innerCornerRadius: CGFloat = innerSize / 4.0
+                        pointList.append("<rect key=\"\(id)\" opacity=\"\(positionAlpha)\" fill=\"\(positionColor)\" x=\"\(posX - 3)\" y=\"\(posY - 3)\" width=\"\(innerSize)\" height=\"\(innerSize)\" rx=\"\(innerCornerRadius)\" ry=\"\(innerCornerRadius)\"/>")
+                        id += 1
+                        // 外圈：大圆角方形（使用 sq25 路径，描边）- 3倍大小
+                        pointList.append("<path key=\"\(id)\" opacity=\"\(positionAlpha)\" d=\"\(EFQRCodeStyleBasic.sq25)\" stroke=\"\(positionColor)\" stroke-width=\"\(100.cgFloat / 6 * positionSize)\" fill=\"none\" transform=\"translate(\(posX - 7.5),\(posY - 7.5)) scale(\(18.cgFloat / 100),\(18.cgFloat / 100))\"/>")
+                        id += 1
+                        break
                     }
                 } else if typeTable[x][y] == QRPointType.posOther {
                     continue
