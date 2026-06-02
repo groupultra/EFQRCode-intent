@@ -424,7 +424,9 @@ public class EFQRCodeStyleBasic: EFQRCodeStyleBase {
                         id += 1
                         break
                     case .roundedRectangle:
-                        pointList.append("<circle key=\"\(id)\" opacity=\"\(positionAlpha)\" fill=\"\(positionColor)\" cx=\"\(x.cgFloat + 0.5)\" cy=\"\(y.cgFloat + 0.5)\" r=\"1.5\"/>")
+                        let innerSize: CGFloat = 3.0
+                        let innerCornerRadius: CGFloat = innerSize / 4.0
+                        pointList.append("<rect key=\"\(id)\" opacity=\"\(positionAlpha)\" fill=\"\(positionColor)\" x=\"\(x.cgFloat - 1)\" y=\"\(y.cgFloat - 1)\" width=\"\(innerSize)\" height=\"\(innerSize)\" rx=\"\(innerCornerRadius)\" ry=\"\(innerCornerRadius)\"/>")
                         id += 1
                         pointList.append("<path key=\"\(id)\" opacity=\"\(positionAlpha)\" d=\"\(EFQRCodeStyleBasic.sq25)\" stroke=\"\(positionColor)\" stroke-width=\"\(100.cgFloat / 6 * posSize)\" fill=\"none\" transform=\"translate(\(x.cgFloat - 2.5),\(y.cgFloat - 2.5)) scale(\(6.cgFloat / 100),\(6.cgFloat / 100))\"/>")
                         id += 1
